@@ -7,37 +7,49 @@
 
 import XCTest
 
-final class ReceipeAppUITests: XCTestCase {
+class RecipeAppUITests: XCTestCase {
+    private var app: XCUIApplication!
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+        app = XCUIApplication()
+        app.launch()
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testRecipeListLoadsSuccessfully() throws {
+        let recipesNavigationBar = app.navigationBars["Recipes"]
+        XCTAssertTrue(recipesNavigationBar.exists, "The Recipes navigation bar should be visible.")
+
+        let tableView = app.tables.firstMatch
+        XCTAssertTrue(tableView.exists, "The recipe list table view should be visible.")
+
+        // Wait for data to load
+        let firstCell = tableView.cells.firstMatch
+        let exists = firstCell.waitForExistence(timeout: 5)
+        XCTAssertTrue(exists, "The first recipe cell should be visible after loading.")
     }
 
-    @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
-        let app = XCUIApplication()
+    func testEmptyStateDisplaysCorrectly() throws {
+        app.launchArguments.append("-EmptyState")
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        let emptyStateText = app.staticTexts["No recipes available."]
+        XCTAssertTrue(emptyStateText.exists, "The empty state message should be displayed.")
     }
 
-    @MainActor
-    func testLaunchPerformance() throws {
-        if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
-            // This measures how long it takes to launch your application.
-            measure(metrics: [XCTApplicationLaunchMetric()]) {
-                XCUIApplication().launch()
-            }
-        }
+    func testErrorStateDisplaysCorrectly() throws {
+        app.launchArguments.append("-ErrorState")
+        app.launch()
+
+        let errorText = app.staticTexts["Failed to parse recipes data."]
+        XCTAssertTrue(errorText.exists, "The error message should be displayed.")
+
+        let retryButton = app.buttons["Retry"]
+        XCTAssertTrue(retryButton.exists, "The Retry button should be visible.")
+        retryButton.tap()
+
+        // Check if loading resumes
+        let progressIndicator = app.activityIndicators.firstMatch
+        XCTAssertTrue(progressIndicator.exists, "The loading indicator should be visible after tapping Retry.")
     }
 }

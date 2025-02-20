@@ -13,9 +13,3 @@ enum NetworkError: Error {
     case dataParsingFailed
     case unknownError(Error)
 }
-
-protocol ServiceProtocol {
-    associatedtype DataModel: Decodable
-    func fetchData(from url: String) async throws -> DataModel
-    func fetchImage(from url: String) async throws -> Data
-}

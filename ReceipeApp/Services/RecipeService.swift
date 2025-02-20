@@ -14,44 +14,18 @@ enum RecipeServiceError: Error {
 }
 
 protocol RecipeServiceProtocol {
-    func fetchRecipes(from url: String) async throws -> [Recipe]
-    func getDefaultUrl() -> String
-    func getMalformedUrl() -> String
-    func getEmptyUrl() -> String
+    func fetchRecipes() async throws -> [Recipe]
 }
 
 class RecipeService: RecipeServiceProtocol {
-    private let service = Service<RecipeListResponse>()
-    
-    func fetchRecipes(from url: String = "") async throws -> [Recipe] {
-        let endpoint = url.isEmpty ? EndPoints.defaultEndpoint.rawValue : url
-        
-        do {
-            let response = try await service.fetchData(from: endpoint)
-            
-            guard !response.recipes.isEmpty else {
-                throw NetworkError.emptyResponse
-            }
-            
-            return response.recipes
-        } catch NetworkError.dataParsingFailed {
-            throw RecipeServiceError.malformedData
-        } catch NetworkError.emptyResponse {
-            throw RecipeServiceError.emptyData
-        } catch {
-            throw RecipeServiceError.unknownError
-        }
-    }
-    
-    func getDefaultUrl() -> String {
-        return EndPoints.defaultEndpoint.rawValue
+    private let networkService: Service<RecipeListResponse>
+
+    init(networkService: Service<RecipeListResponse> = Service()) {
+        self.networkService = networkService
     }
 
-    func getMalformedUrl() -> String {
-        return EndPoints.malformedUrl.rawValue
-    }
-
-    func getEmptyUrl() -> String {
-        return EndPoints.emptyUrl.rawValue
+    func fetchRecipes() async throws -> [Recipe] {
+        let response = try await networkService.fetchData(from: EndPoints.defaultEndpoint.rawValue)
+        return response.recipes
     }
 }

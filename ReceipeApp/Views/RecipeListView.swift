@@ -24,7 +24,9 @@ struct RecipeListView: View {
 
                 case .loaded:
                     List(viewModel.recipes) { recipe in
-                        NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
+                        NavigationLink(
+                            destination: RecipeDetailView(recipe: recipe)
+                        ) {
                             RecipeRow(recipe: recipe)
                         }
                     }

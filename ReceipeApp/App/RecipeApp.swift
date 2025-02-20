@@ -8,6 +8,7 @@
 
 import SwiftUI
 
+// MARK: - Main App Entry Point
 @main
 struct RecipeApp: App {
     @StateObject private var recipeListViewModel = RecipeListViewModel()

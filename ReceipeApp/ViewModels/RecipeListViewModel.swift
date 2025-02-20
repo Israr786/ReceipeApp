@@ -24,17 +24,16 @@ class RecipeListViewModel: ObservableObject {
     private let recipeService: RecipeServiceProtocol
 
     init(recipeService: RecipeServiceProtocol = RecipeService()) {
-            self.recipeService = recipeService
-        }
+        self.recipeService = recipeService
+    }
 
-    func fetchRecipes(from url: String = "") async {
+    func fetchRecipes() async {
         await MainActor.run {
             state = .loading
-            recipes = []
         }
 
         do {
-            let fetchedRecipes = try await recipeService.fetchRecipes(from: url)
+            let fetchedRecipes = try await recipeService.fetchRecipes()
             await MainActor.run {
                 if fetchedRecipes.isEmpty {
                     state = .empty
@@ -43,14 +42,17 @@ class RecipeListViewModel: ObservableObject {
                     state = .loaded
                 }
             }
+        } catch NetworkError.dataParsingFailed {
+            await MainActor.run {
+                state = .error("Failed to parse recipes data.")
+            }
+        } catch NetworkError.emptyResponse {
+            await MainActor.run {
+                state = .error("No recipes were found.")
+            }
         } catch {
             await MainActor.run {
-                if let decodingError = error as? DecodingError {
-                    state = .error("Failed to parse recipes data.")
-                    print(decodingError)
-                } else {
-                    state = .error("Failed to load recipes: \(error.localizedDescription)")
-                }
+                state = .error("An unexpected error occurred: \(error.localizedDescription)")
             }
         }
     }

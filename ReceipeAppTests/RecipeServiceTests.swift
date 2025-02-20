@@ -8,56 +8,57 @@
 import XCTest
 @testable import ReceipeApp
 
-final class RecipeServiceTests: XCTestCase {
-    var recipeService: RecipeServiceProtocol!
+class RecipeListViewModelTests: XCTestCase {
+    func testFetchRecipes_Success() async {
+        let mockService = MockRecipeService(mockRecipes: [
+            Recipe(id: "1", name: "Pasta", cuisine: "Italian", photoUrlLarge: nil, photoUrlSmall: nil, sourceUrl: nil, youtubeUrl: nil)
+        ])
+        let viewModel = RecipeListViewModel(recipeService: mockService)
 
-    override func setUp() {
-        super.setUp()
-        recipeService = RecipeService()
+        await viewModel.fetchRecipes()
+
+        XCTAssertEqual(viewModel.recipes.count, 1)
+        XCTAssertEqual(viewModel.state, .loaded)
     }
 
-    override func tearDown() {
-        recipeService = nil
-        super.tearDown()
+    func testFetchRecipes_Empty() async {
+        let mockService = MockRecipeService(mockRecipes: [])
+        let viewModel = RecipeListViewModel(recipeService: mockService)
+
+        await viewModel.fetchRecipes()
+
+        XCTAssertEqual(viewModel.recipes.count, 0)
+        XCTAssertEqual(viewModel.state, .empty)
     }
 
-    func testFetchRecipesSuccess() async throws {
-        let url = recipeService.getDefaultUrl()
+    func testFetchRecipes_Error() async {
+        let mockService = MockRecipeService(mockError: NetworkError.dataParsingFailed)
+        let viewModel = RecipeListViewModel(recipeService: mockService)
 
-        do {
-            let recipes = try await recipeService.fetchRecipes(from: url)
+        await viewModel.fetchRecipes()
 
-            XCTAssertFalse(recipes.isEmpty, "Recipes should not be empty for a valid response.")
-            XCTAssertEqual(recipes[0].name, "Apam Balik", "The first recipe should match the expected data.")
-        } catch {
-            XCTFail("Fetching recipes failed with error: \(error)")
+        XCTAssertEqual(viewModel.recipes.count, 0)
+        if case .error(let errorMessage) = viewModel.state {
+            XCTAssertEqual(errorMessage, "Failed to parse recipes data.")
+        } else {
+            XCTFail("Expected errXCTAssertEqualor state but got \(viewModel.state)")
         }
     }
+}
 
-    func testFetchRecipesEmptyResponse() async {
+class MockRecipeService: RecipeServiceProtocol {
+    private let mockRecipes: [Recipe]?
+    private let mockError: Error?
 
-        let url = recipeService.getEmptyUrl()
-
-        do {
-            let recipes = try await recipeService.fetchRecipes(from: url)
-            XCTAssert(recipes.isEmpty)
-        } catch RecipeServiceError.emptyData {
-            XCTAssertTrue(true, "Correctly caught empty data error.")
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
+    init(mockRecipes: [Recipe]? = nil, mockError: Error? = nil) {
+        self.mockRecipes = mockRecipes
+        self.mockError = mockError
     }
 
-    func testFetchRecipesMalformedResponse() async {
-        let url = recipeService.getMalformedUrl()
-
-        do {
-            let recipes = try await recipeService.fetchRecipes(from: url)
-            XCTFail("Expected a malformed data error, but got \(recipes.count) recipes instead.")
-        } catch RecipeServiceError.malformedData {
-            XCTAssertTrue(true, "Correctly caught malformed data error.")
-        } catch {
-            XCTFail("Unexpected error: \(error)")
+    func fetchRecipes() async throws -> [Recipe] {
+        if let error = mockError {
+            throw error
         }
+        return mockRecipes ?? []
     }
 }

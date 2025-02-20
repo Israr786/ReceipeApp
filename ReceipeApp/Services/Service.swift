@@ -6,12 +6,17 @@
 //
 import Foundation
 
+protocol ServiceProtocol {
+    associatedtype DataModel: Decodable
+    func fetchData(from url: String) async throws -> DataModel
+}
+
 class Service<Model: Decodable>: ServiceProtocol, GenericJsonDecoder {
     typealias DataModel = Model
 
     func fetchData(from url: String) async throws -> Model {
         guard let url = URL(string: url) else {
-            throw URLError(.badURL)
+            throw NetworkError.malformedUrl
         }
 
         let (data, _) = try await URLSession.shared.data(from: url)
@@ -24,18 +29,5 @@ class Service<Model: Decodable>: ServiceProtocol, GenericJsonDecoder {
         } catch {
             throw NetworkError.dataParsingFailed
         }
-    }
-
-    func fetchImage(from url: String) async throws -> Data {
-        guard let url = URL(string: url) else {
-            throw NetworkError.malformedUrl
-        }
-
-        let (data, _) = try await URLSession.shared.data(from: url)
-        guard !data.isEmpty else {
-            throw NetworkError.emptyResponse
-        }
-
-        return data
     }
 }
